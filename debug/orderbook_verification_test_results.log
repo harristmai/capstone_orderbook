@@ -1,0 +1,121 @@
+=== OrderBook with Data Fabric Simulation ===
+Test Run Date: 2025-11-30
+Log File: ../debug/orderbook_verification_test_results.log
+
+--- Test 1: Add Orders (with chunking) ---
+After chunk 1: 0 orders
+[EVENT] ADD - Order 12345 | Price: 10000 | Qty: 50 | Side: B | Timestamp: 1000000 | Active: Yes
+After chunk 2: 1 orders
+[EVENT] ADD - Order 12346 | Price: 10050 | Qty: 100 | Side: S | Timestamp: 1000100 | Active: Yes
+After msg2: 2 orders
+
+--- Test 2: Execute Partial Order ---
+[EVENT] EXECUTE - Order 12345 | Price: 10000 | Qty: 30 | Side: B | Timestamp: 1000000 | Active: Yes
+Order 12345 after execution: qty=30
+
+--- Test 3: Cancel Order ---
+[EVENT] CANCEL - Order 12346 | Price: 10050 | Qty: 100 | Side: S | Timestamp: 1000100 | Active: No
+After cancel: 1 active orders
+
+--- Test 4: Order Replace ---
+Before replace:
+  Order 12345: price=10000, qty=30
+[EVENT] REPLACE - Order 12347 | Price: 10050 | Qty: 100 | Side: B | Timestamp: 1000000 | Active: Yes
+After replace:
+  Order 12345 exists: No
+  Order 12347: price=10050, qty=100
+
+--- Test 5: Batch Add Orders ---
+[EVENT] ADD - Order 20000 | Price: 9900 | Qty: 10 | Side: B | Timestamp: 2020000 | Active: Yes
+[EVENT] ADD - Order 20001 | Price: 9901 | Qty: 10 | Side: B | Timestamp: 2020001 | Active: Yes
+[EVENT] ADD - Order 20002 | Price: 9902 | Qty: 10 | Side: B | Timestamp: 2020002 | Active: Yes
+[EVENT] ADD - Order 20003 | Price: 9903 | Qty: 10 | Side: B | Timestamp: 2020003 | Active: Yes
+[EVENT] ADD - Order 20004 | Price: 9904 | Qty: 10 | Side: B | Timestamp: 2020004 | Active: Yes
+[EVENT] ADD - Order 30000 | Price: 10100 | Qty: 15 | Side: S | Timestamp: 3030000 | Active: Yes
+[EVENT] ADD - Order 30001 | Price: 10101 | Qty: 15 | Side: S | Timestamp: 3030001 | Active: Yes
+[EVENT] ADD - Order 30002 | Price: 10102 | Qty: 15 | Side: S | Timestamp: 3030002 | Active: Yes
+[EVENT] ADD - Order 30003 | Price: 10103 | Qty: 15 | Side: S | Timestamp: 3030003 | Active: Yes
+[EVENT] ADD - Order 30004 | Price: 10104 | Qty: 15 | Side: S | Timestamp: 3030004 | Active: Yes
+Total orders: 11 | Active: 11
+
+--- Test 6: Market Data Queries ---
+Best Bid: 10050 @ 100
+Best Ask: 10100 @ 15
+Spread: 50
+
+Market Depth (Top 5 levels):
+  BIDS:
+    10050 @ 100
+    9904 @ 10
+    9903 @ 10
+    9902 @ 10
+    9901 @ 10
+  ASKS:
+    10100 @ 15
+    10101 @ 15
+    10102 @ 15
+    10103 @ 15
+    10104 @ 15
+
+--- Test 7: Error Handling ---
+Test 7a: Unknown message type
+  Unknown message types: 4
+Test 7b: Buffer overflow (simulated large garbage data)
+  Buffer overflows: 1
+Test 7c: Incomplete message handling
+  Incomplete messages (waiting for data): 1
+[EVENT] ADD - Order 99999 | Price: 15000 | Qty: 200 | Side: B | Timestamp: 5000000 | Active: Yes
+  Message completed successfully, order count: 12
+Test 7d: Invalid operations (cancel non-existent order)
+  Cancel result: Failed (expected)
+  Invalid operations: 1 new
+Test 7e: Execute with excessive quantity
+  Execute result: Failed (expected)
+  Invalid operations: 1 new
+Test 7f: Replace non-existent order
+  Replace result: Failed (expected)
+  Invalid operations: 1 new
+
+Final Error Statistics:
+  Unknown message types: 4
+  Buffer overflows: 1
+  Incomplete messages: 1
+  Invalid operations: 3
+
+--- Test 8: FIFO Backpressure ---
+FIFO Configuration: 256 bytes max
+Attempted writes: 20 messages (720 bytes total)
+Successful writes: 7 messages
+Backpressure events: 13 (FIFO full)
+
+FIFO Statistics:
+  Current depth: 252 bytes
+  Utilization: 98.4375%
+  High-water mark: 252 bytes
+  Total bytes written: 252
+  Total bytes dropped: 468
+  Backpressure events: 13
+
+Draining FIFO...
+After processing: 7 orders added
+FIFO depth after drain: 0 bytes
+
+--- Final OrderBook State ---
+OrderBook: 12 active orders
+     OrderID     Price  Quantity  Side      Timestamp    Active
+-------------------------------------------------------------------------
+       30000     10100        15     S        3030000       Yes
+       20001      9901        10     B        2020001       Yes
+       12347     10050       100     B        1000000       Yes
+       30001     10101        15     S        3030001       Yes
+       20000      9900        10     B        2020000       Yes
+       20002      9902        10     B        2020002       Yes
+       20003      9903        10     B        2020003       Yes
+       20004      9904        10     B        2020004       Yes
+       30002     10102        15     S        3030002       Yes
+       30003     10103        15     S        3030003       Yes
+       30004     10104        15     S        3030004       Yes
+       99999     15000       200     B        5000000       Yes
+
+=== Test Run Complete ===
+Results saved to: ../debug/orderbook_verification_test_results.log

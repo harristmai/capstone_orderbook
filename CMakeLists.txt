@@ -13,6 +13,7 @@ include_directories(include)
 # Main library - consolidated orderbook with data fabric
 add_library(orderbook_lib
     src/orderbook.cpp
+    src/bid_ask.cpp
 )
 
 # Main executable
